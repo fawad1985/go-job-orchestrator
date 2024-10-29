@@ -1,0 +1,9 @@
+{
+    "id": "example-job",
+    "name": "Example Job with Multiple Tasks",
+    "tasks": [
+        {"id": "task1", "name": "First Task", "maxRetry": 3, "functionName": "task1Function"},
+        {"id": "task2", "name": "Second Task", "maxRetry": 2, "functionName": "task2Function"},
+        {"id": "task3", "name": "Third Task", "maxRetry": 1, "functionName": "task3Function"}
+    ]
+}
