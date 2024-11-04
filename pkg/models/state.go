@@ -7,7 +7,8 @@ package models
 // Used for system monitoring and status reporting
 // Provides overview of active and queued jobs
 type SystemState struct {
-	ActiveJobs  []JobExecutionState `json:"activeJobs"`  // Currently executing jobs
-	QueuedJobs  []string            `json:"queuedJobs"`  // Jobs waiting in queue
-	QueuedCount int                 `json:"queuedCount"` // Total queue size
+	ActiveJobs   []JobExecutionState `json:"activeJobs"`   // Currently executing jobs
+	QueuedJobs   []string            `json:"queuedJobs"`   // Jobs waiting in queue
+	QueuedCount  int                 `json:"queuedCount"`  // Total queue size
+	ExecutedJobs int                 `json:"executedJobs"` // Count of successfully executed jobs
 }

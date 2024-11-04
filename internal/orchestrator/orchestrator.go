@@ -172,5 +172,12 @@ func (o *Orchestrator) GetSystemState() (*models.SystemState, error) {
 	}
 	state.QueuedCount = queuedCount
 
+	// Get total count of successfully executed jobs
+	executedCount, err := o.db.GetExecutedJobsCount()
+	if err != nil {
+		return nil, err
+	}
+	state.ExecutedJobs = executedCount
+
 	return state, nil
 }

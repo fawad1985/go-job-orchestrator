@@ -141,6 +141,11 @@ func (o *Orchestrator) ExecuteJob(ctx context.Context, executionID string) error
 		return fmt.Errorf("failed to update job execution status to completed: %w", err)
 	}
 
+	// Increment executed jobs count
+	if err := o.db.IncrementExecutedJobsCount(); err != nil {
+		log.Printf("Failed to increment executed jobs count: %v", err)
+	}
+
 	return nil
 }
 

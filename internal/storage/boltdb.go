@@ -4,6 +4,7 @@
 package storage
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -19,6 +20,7 @@ const (
 	jobDefinitionsBucket = "job_definitions"
 	jobExecutionsBucket  = "job_executions"
 	queueBucket          = "queue"
+	statsBucket          = "stats"
 )
 
 // DB interface defines all storage operations
@@ -36,6 +38,8 @@ type DB interface {
 	DequeueJob() (string, error)
 	GetQueuedJobCount() (int, error)
 	RemoveFromQueue(jobID string) error
+	IncrementExecutedJobsCount() error
+	GetExecutedJobsCount() (int, error)
 	Close() error
 }
 
@@ -60,7 +64,7 @@ func NewBoltDB(path string) (*BoltDB, error) {
 	// Create required buckets in a single transaction
 	// Ensures database is properly initialized
 	err = db.Update(func(tx *bbolt.Tx) error {
-		buckets := []string{jobDefinitionsBucket, jobExecutionsBucket, queueBucket}
+		buckets := []string{jobDefinitionsBucket, jobExecutionsBucket, queueBucket, statsBucket}
 		for _, bucket := range buckets {
 			_, err := tx.CreateBucketIfNotExists([]byte(bucket))
 			if err != nil {
@@ -253,4 +257,47 @@ func (b *BoltDB) RemoveFromQueue(jobID string) error {
 		}
 		return bucket.Delete([]byte(jobID))
 	})
+}
+
+const executedJobsCountKey = "executed_jobs_count"
+
+// Increment executed jobs count
+// Used within orchestrator
+func (b *BoltDB) IncrementExecutedJobsCount() error {
+	return b.db.Update(func(tx *bbolt.Tx) error {
+		bucket := tx.Bucket([]byte(statsBucket))
+		if bucket == nil {
+			return fmt.Errorf("stats bucket not found")
+		}
+
+		var count uint64 = 0
+		existing := bucket.Get([]byte(executedJobsCountKey))
+		if existing != nil {
+			count = binary.BigEndian.Uint64(existing)
+		}
+
+		count++
+		buf := make([]byte, 8)
+		binary.BigEndian.PutUint64(buf, count)
+		return bucket.Put([]byte(executedJobsCountKey), buf)
+	})
+}
+
+// Get executed jobs count
+// Used by system stats
+func (b *BoltDB) GetExecutedJobsCount() (int, error) {
+	var count uint64
+	err := b.db.View(func(tx *bbolt.Tx) error {
+		bucket := tx.Bucket([]byte(statsBucket))
+		if bucket == nil {
+			return nil // If bucket doesn't exist, count is 0
+		}
+		data := bucket.Get([]byte(executedJobsCountKey))
+		if data == nil {
+			return nil // If key doesn't exist, count is 0
+		}
+		count = binary.BigEndian.Uint64(data)
+		return nil
+	})
+	return int(count), err
 }
